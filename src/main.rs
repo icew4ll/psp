@@ -97,3 +97,24 @@ fn ip() {
     let country: geoip2::Country = reader.lookup(ip).unwrap();
     print!("{:?}\n", country.country.unwrap().iso_code.unwrap());
 }
+
+
+// sort by time
+// mailq | grep $(date | awk '{print $2}') | sort -k 6
+// mailq | grep $(date | awk '{print $2}') | sort -k 6 | sort -k 7
+//awk -F, 'p!=$13 && p0 {print p0} {p=$13; p0=$0} END{print p0}' file
+
+// get unique mailq id:
+// mailq | grep $(date | awk '{print $2}') | awk '!seen[$7]++'
+
+// example output:
+// w5JEIDrg022952-    3369 Tue Jun 19 23:18 MAILER-DAEMON
+// w5JEOG5n023310-      59 Tue Jun 19 23:24 <saito@escalader.co.jp>
+// w5JE5O8L022147-      46 Tue Jun 19 23:05 <ishida@ntecweb.co.jp>
+// w5JDj3Au021117       55 Tue Jun 19 22:45 <ohta-m@cortina.co.jp>
+// w5JDvtFG021606-      49 Tue Jun 19 22:57 <takeyasu@suikan.co.jp>
+// w5JDfjXF020986       41 Tue Jun 19 22:41 <takahiro.tagawa@mitsushima.co.jp>
+// w5JDvfSP021570-      48 Tue Jun 19 22:57 <hirokazu.nishimura@mitsushima.co.jp>
+// w5JE2hSo022014-      57 Tue Jun 19 23:02 <tomohisa.takase@mitsushima.co.jp>
+// w5J8OJGM411748-    4118 Tue Jun 19 17:24 <nichizo@nichizo.co.jp>
+// w5J7MCX9383350      802 Tue Jun 19 16:22 <info-satokon@sato-konpo.co.jp>
