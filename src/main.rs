@@ -98,14 +98,23 @@ fn ip() {
     print!("{:?}\n", country.country.unwrap().iso_code.unwrap());
 }
 
+// awk
+// https://stackoverflow.com/questions/1915636/is-there-a-way-to-uniq-by-column
+// https://unix.stackexchange.com/questions/204747/get-or-filter-duplicated-lines-by-column
+// https://stackoverflow.com/questions/24014194/how-to-grep-the-last-occurrence-of-the-line-pattern
+// https://unix.stackexchange.com/questions/59893/grep-lines-starting-with-1-in-ubuntu
 
-// sort by time
-// mailq | grep $(date | awk '{print $2}') | sort -k 6
-// mailq | grep $(date | awk '{print $2}') | sort -k 6 | sort -k 7
-//awk -F, 'p!=$13 && p0 {print p0} {p=$13; p0=$0} END{print p0}' file
-
-// get unique mailq id:
+// sort by time then name
+// mailq | grep $(date | awk '{print $2}') | sort -k 6 -r | sort -k 7 -r
+//
+// get last unique mailq id:
 // mailq | grep $(date | awk '{print $2}') | awk '!seen[$7]++'
+// mailq | grep $(date | awk '{print $2}') | sort -k 6 -r | sort -k 7 -r | uniq -c -f6 | sort -k 1
+
+// grep for ip
+// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5JFKFOG026685 | tail -1
+// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5JFKFOG026685 | tail -1
+// H??Received: from miycaaykdt (unknown [177.66.59.207])
 
 // example output:
 // w5JEIDrg022952-    3369 Tue Jun 19 23:18 MAILER-DAEMON
@@ -118,3 +127,7 @@ fn ip() {
 // w5JE2hSo022014-      57 Tue Jun 19 23:02 <tomohisa.takase@mitsushima.co.jp>
 // w5J8OJGM411748-    4118 Tue Jun 19 17:24 <nichizo@nichizo.co.jp>
 // w5J7MCX9383350      802 Tue Jun 19 16:22 <info-satokon@sato-konpo.co.jp>
+// example mq
+// H??Received: from miycaaykdt (unknown [177.66.59.207])
+//         by ampri02.alpha-mail.net (Alpha-mail) with ESMTP id D1CEE80040
+//         for <kevin2@donotspamtoday.com>; Wed, 20 Jun 2018 00:20:13 +0900 (JST)
