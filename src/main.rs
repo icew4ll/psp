@@ -4,6 +4,8 @@ extern crate dotenv_codegen;
 extern crate duct;
 #[macro_use]
 extern crate lazy_static;
+// #[macro_use]
+// extern crate prettytable;
 extern crate chrono;
 extern crate clap;
 extern crate maxminddb;
@@ -22,8 +24,7 @@ use std::str::FromStr;
 //     ($($x:expr),*) => (vec![$($x.to_string()),*]);
 // }
 lazy_static! {
-    pub static ref REG: Regex = Regex::new(r#" (\d{1,}) .*(<.*>)"#).unwrap();
-    // pub static ref REIP: Regex = Regex::new(r#"(\b\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}\b)\]\)\r\n\tby (ltsub01.alpha-mail.net|ltsub02.alpha-mail.net|amsub01.alpha-mail.net|amsub02.alpha-mail.net)"#).unwrap();
+    pub static ref REG: Regex = Regex::new(r#"(\d{1,}) (\w{1,}).*<(.*\.\w{1,})"#).unwrap();
 }
 
 fn main() {
@@ -75,18 +76,20 @@ fn build() {
 
 fn ssh(user: String, pass: String, ip: String) {
     let mut mailq = Vec::new();
-    let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"mailq | grep \\$(date | awk \\'{{print \\$2}}\\') | awk \\'{{print \\$7}}\\' | sort | uniq -c | sort -n\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass);
+    let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"mailq | grep \\$(date | awk \\'{{print \\$2}}\\') | sort -k 6 -r | sort -k 7 -r | uniq -c -f6 | sort -k 1 | awk \\'{{print \\$1,\\$2,\\$8}}\\'\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass);
     // println!("{}", command);
     let args = &["-c", command.as_str()];
     let stdout = cmd("expect", args).read().unwrap();
     // println!("{}", stdout);
     // println!("{:?}", stdout);
     for cap in REG.captures_iter(&stdout) {
-        let msg = cap[2].to_string().replace("<", "").replace(">", "");
-        let email = cap[1].to_string();
-        mailq.push((email, msg));
+        let count = cap[1].to_string();
+        let id = cap[2].to_string();
+        let email = cap[3].to_string();
+        mailq.push((count, id, email));
     }
     println!("{:?}", mailq);
+    println!("{:?}", mailq[0].1);
 }
 
 fn ip() {
@@ -109,11 +112,13 @@ fn ip() {
 //
 // get last unique mailq id:
 // mailq | grep $(date | awk '{print $2}') | awk '!seen[$7]++'
-// mailq | grep $(date | awk '{print $2}') | sort -k 6 -r | sort -k 7 -r | uniq -c -f6 | sort -k 1
+// FINAL VERSION:
+// mailq | grep $(date | awk '{print $2}') | sort -k 6 -r | sort -k 7 -r | uniq -c -f6 | sort -k 1 | awk '{print $1,$2,$8}'
 
 // grep for ip
 // grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5JFKFOG026685 | tail -1
-// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5JFKFOG026685 | tail -1
+// FINAL GET IP:
+// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5N4Wb3s094959 | tail -1 | grep -Po '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 // H??Received: from miycaaykdt (unknown [177.66.59.207])
 
 // example output:
@@ -127,7 +132,3 @@ fn ip() {
 // w5JE2hSo022014-      57 Tue Jun 19 23:02 <tomohisa.takase@mitsushima.co.jp>
 // w5J8OJGM411748-    4118 Tue Jun 19 17:24 <nichizo@nichizo.co.jp>
 // w5J7MCX9383350      802 Tue Jun 19 16:22 <info-satokon@sato-konpo.co.jp>
-// example mq
-// H??Received: from miycaaykdt (unknown [177.66.59.207])
-//         by ampri02.alpha-mail.net (Alpha-mail) with ESMTP id D1CEE80040
-//         for <kevin2@donotspamtoday.com>; Wed, 20 Jun 2018 00:20:13 +0900 (JST)
