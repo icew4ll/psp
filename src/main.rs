@@ -12,7 +12,7 @@ extern crate maxminddb;
 extern crate regex;
 
 use chrono::prelude::*;
-use clap::{App, Arg};
+use clap::{App, Arg, SubCommand};
 use duct::cmd;
 use maxminddb::geoip2;
 use regex::Regex;
@@ -33,7 +33,32 @@ fn main() {
         .author("ice")
         .about("psp cli")
         .arg(Arg::with_name("input").help("function to exec").index(1))
+        .arg(
+            Arg::with_name("ip")
+                .short("i")
+                .long("ip")
+                .value_name("email")
+                .takes_value(true)
+                .help("get ip"),
+        )
+        .subcommand(
+            SubCommand::with_name("a7")
+                .about("amout07")
+                .arg(Arg::with_name("emails").help("check email ips").index(1)),
+        )
         .get_matches();
+
+    if let Some(matches) = matches.subcommand_matches("a7") {
+        println!("amout7 subcommand");
+        ssh(
+            dotenv!("U3").to_string(),
+            dotenv!("P2").to_string(),
+            r"216.230.254.45".to_string(),
+        );
+        if let Some(i) = matches.value_of("emails") {
+            println!("Email args: {}", i);
+        }
+    }
 
     if let Some(o) = matches.value_of("input") {
         println!("INPUT: {}", o);
@@ -90,6 +115,11 @@ fn ssh(user: String, pass: String, ip: String) {
     }
     println!("{:?}", mailq);
     println!("{:?}", mailq[0].1);
+    // iterate vec, return vec
+    // let q = mailq.iter().map(|x| &x.1).collect::<Vec<_>>();
+    // println!("{:?}", q);
+    // print elements of vec with iter
+    mailq.iter().map(|x| &x.1).for_each(|x| println!("{:?}", x));
 }
 
 fn ip() {
@@ -118,7 +148,7 @@ fn ip() {
 // grep for ip
 // grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5JFKFOG026685 | tail -1
 // FINAL GET IP:
-// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5N4Wb3s094959 | tail -1 | grep -Po '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+// grep -Po '^H\?\?Received.*' /var/spool/mqueue/qfw5Q1bTLI044854 | tail -1 | grep -Po '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 // H??Received: from miycaaykdt (unknown [177.66.59.207])
 
 // example output:
@@ -132,3 +162,5 @@ fn ip() {
 // w5JE2hSo022014-      57 Tue Jun 19 23:02 <tomohisa.takase@mitsushima.co.jp>
 // w5J8OJGM411748-    4118 Tue Jun 19 17:24 <nichizo@nichizo.co.jp>
 // w5J7MCX9383350      802 Tue Jun 19 16:22 <info-satokon@sato-konpo.co.jp>
+// example stdout
+// [("1", "w5Q1bTLI044854", "hira90-24@ando-che.co.jp"), ("1", "w5Q1O0uW038769", "tokiya@sato-zen.co.jp"), ("1", "w5Q2f3mn074021", "o-i@funabori.co.jp"), ("1", "w5Q5gc5Y147098", "t.nawa@beams-dc.co.jp"), ("1", "w5Q6WE9o172191", "libro@jei.or.jp"), ("1", "w5Q6xtgH183057", "s-hayatsu@adrs-s.co.jp"), ("1", "w5Q6xuHF183075", "hazama-r@njr.jyutaku.co.jp"), ("1", "w5Q71g8k183924", "n.ishige@shantery.co.jp"), ("1", "w5Q77DNc186402", "master002@cds-ito.co.jp"), ("1", "w5Q7DVmV188873", "katsurada@keioizumi.co.jp"), ("1", "w5Q7EDUq189104", "fcshienbu@reins.co.jp"), ("1", "w5Q7EOBc189155", "m-furuse@kawamoto-ind.co.jp"), ("1", "w5Q7EQhj189180", "user@b0nds.jp"), ("1", "w5Q7ERVX189187", "teramoto@okouchi.co.jp"), ("2", "w5Q7EMla189140", "utm.m@nifty.com")]
