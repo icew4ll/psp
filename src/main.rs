@@ -31,7 +31,10 @@ type MQ = (i32, String, String);
 // }}}
 // regex {{{
 lazy_static! {
-    pub static ref REG: Regex = Regex::new(r#"(\d{1,}) (\w{1,}).*<(.*\.\w{1,})"#).unwrap();
+    pub static ref REGMQ: Regex = Regex::new(r#"(\d{1,}) (\w{1,}).*<(.*\.\w{1,})"#).unwrap();
+// Received: from [192.168.0.150] (157-14-186-96.tokyo.otk.vectant.ne.jp [157.14.186.96])\r\n\tby ltsub02.alpha-mail.net
+//Received: from localhost (124x33x180x18.ap124.ftth.ucom.ne.jp [124.33.180.18])\r\n\tby ltsub01.alpha-mail.net (Alpha-mail)
+    pub static ref REGINFO: Regex = Regex::new(r#"Received.*\[(\d{0,3}\.\d{0,3}\.\d{0,3}\.\d{0,3})\]\)\r\n\tby (ltsub01|ltsub02|ampri01|ampri02)"#).unwrap();
 }
 // }}}
 fn main() {
@@ -76,10 +79,10 @@ fn main() {
         // let mut full = &mailq;
         // println!("full: {:?}", full);
         if let Some(i) = matches.value_of("mqid") {
-            println!("subcommand args: {}", &i);
+            println!("amout5 arg supplied: {}", &i);
             getip(
-                &mailq,
                 i.to_string(),
+                &mailq,
                 dotenv!("U3").to_string(),
                 dotenv!("P2").to_string(),
                 r"216.230.254.45".to_string(),
@@ -100,14 +103,14 @@ fn main() {
             r"216.230.254.47".to_string(),
         );
         if let Some(i) = matches.value_of("mqid") {
+            println!("subcommand args: {}", i);
             getip(
-                &mailq,
                 i.to_string(),
+                &mailq,
                 dotenv!("U3").to_string(),
                 dotenv!("P2").to_string(),
                 r"216.230.254.47".to_string(),
             );
-            println!("subcommand args: {}", i);
         }
     }
     // }}}
@@ -161,7 +164,7 @@ fn ssh(mailq: &mut Vec<(MQ)>, user: String, pass: String, ip: String) {
     let stdout = cmd("expect", args).read().unwrap();
     // println!("{}", stdout);
     // println!("{:?}", stdout);
-    for cap in REG.captures_iter(&stdout) {
+    for cap in REGMQ.captures_iter(&stdout) {
         let count = cap[1].parse::<i32>().unwrap();
         let id = cap[2].to_string();
         let email = cap[3].to_string();
@@ -175,12 +178,36 @@ fn ssh(mailq: &mut Vec<(MQ)>, user: String, pass: String, ip: String) {
 }
 // }}}
 // getip {{{
-fn getip(mailq: &Vec<(MQ)>, input: String, user: String, pass: String, ip: String) {
-    let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"grep -oP \\'\\\\\\[\\\\K(\\[^\\]\\]+)|by \\\\K(\\[^\\.\\]+)|From: \\\\K(\\[^\\\\n\\]+)|Subject: \\\\K(\\.{{0,40}})\\' /var/spool/mqueue/qf{} | tail -4\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass, input);
-    println!("{}", mailq[0].1);
+fn getip(input: String, mailq: &Vec<(MQ)>, user: String, pass: String, ip: String) {
+    let email = &mailq.into_iter().filter(|i| i.2 == input).collect::<Vec<_>>();
+    println!("Using mailq ID: {}", email[0].1);
+    // let mut caps = Vec::new();
+    // let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"grep -oP \\'\\\\\\[\\\\K(\\[^\\]\\]+)|by \\\\K(\\[^\\.\\]+)|From: \\\\K(\\[^\\\\n\\]+)|Subject: \\\\K(\\.{{0,40}})\\' /var/spool/mqueue/qf{} | tail -4\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass, email[0].1);
+    let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"cat /var/spool/mqueue/qf{}\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass, email[0].1);
     let args = &["-c", command.as_str()];
     let stdout = cmd("expect", args).read().unwrap();
     println!("{}", stdout);
+    println!("###############");
+    for cap in REGINFO.captures_iter(&stdout) {
+        // let ip = cap[1].parse::<i32>().unwrap();
+        let ip = cap[1].to_string();
+        let server = cap[2].to_string();
+        // let from = cap[3].to_string();
+        // let subj = cap[4].to_string();
+        // let server = cap[2].to_string();
+        println!("IP: {}", ip);
+        println!("Server: {}", server);
+        // println!("{}", from);
+        // println!("{}", subj);
+        // println!("{}", server);
+        // caps.push((ip, server));
+    }
+    // println!("{:?}", caps);
+    // let sorted = mailq;
+    // sort by count
+    // sorted.sort_by_key(|x| x.0);
+    // print each element
+    // sorted.iter().for_each(|x| println!("{} {} {}", x.0.to_string(), x.1, x.2))
 }
 // }}}
 // ip {{{
