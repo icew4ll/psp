@@ -34,7 +34,7 @@ lazy_static! {
     pub static ref REGMQ: Regex = Regex::new(r#"(\d{1,}) (\w{1,}).*<(.*\.\w{1,})"#).unwrap();
 // Received: from [192.168.0.150] (157-14-186-96.tokyo.otk.vectant.ne.jp [157.14.186.96])\r\n\tby ltsub02.alpha-mail.net
 //Received: from localhost (124x33x180x18.ap124.ftth.ucom.ne.jp [124.33.180.18])\r\n\tby ltsub01.alpha-mail.net (Alpha-mail)
-    pub static ref REGINFO: Regex = Regex::new(r#"Received.*\[(\d{0,3}\.\d{0,3}\.\d{0,3}\.\d{0,3})\]\)\r\n\tby (ltsub01|ltsub02|ampri01|ampri02)"#).unwrap();
+    pub static ref REGINFO: Regex = Regex::new(r#"Received.*\[(\d{0,3}\.\d{0,3}\.\d{0,3}\.\d{0,3})\]\)\r\n\tby (ltsub01|ltsub02|amsub01|amsub02|ampri01|ampri02|ltpri01|ltpri02)"#).unwrap();
 }
 // }}}
 fn main() {
@@ -54,14 +54,18 @@ fn main() {
                 .help("get ip"),
         )
         .subcommand(
-            SubCommand::with_name("a5")
-                .about("amout05")
-                .arg(Arg::with_name("mqid").help("check mail info by mailq id").index(1)),
+            SubCommand::with_name("a5").about("amout05").arg(
+                Arg::with_name("mqid")
+                    .help("check mail info by mailq id")
+                    .index(1),
+            ),
         )
         .subcommand(
-            SubCommand::with_name("a7")
-                .about("amout07")
-                .arg(Arg::with_name("mqid").help("check mail info by mailq id").index(1)),
+            SubCommand::with_name("a7").about("amout07").arg(
+                Arg::with_name("mqid")
+                    .help("check mail info by mailq id")
+                    .index(1),
+            ),
         )
         .get_matches();
     // }}}
@@ -87,7 +91,6 @@ fn main() {
                 dotenv!("P2").to_string(),
                 r"216.230.254.45".to_string(),
             );
-
         }
     }
     if let Some(matches) = matches.subcommand_matches("a7") {
@@ -138,7 +141,7 @@ fn main() {
             //     dotenv!("P2").to_string(),
             //     r"216.230.254.48".to_string(),
             // ),
-            "ip" => ip(),
+            // "ip" => ip(),
             "b" => build(),
             _ => println!("0"),
         }
@@ -174,12 +177,18 @@ fn ssh(mailq: &mut Vec<(MQ)>, user: String, pass: String, ip: String) {
     // sort by count
     sorted.sort_by_key(|x| x.0);
     // print each element
-    sorted.iter().for_each(|x| println!("{} {} {}", x.0.to_string(), x.1, x.2))
+    sorted
+        .iter()
+        .for_each(|x| println!("{} {} {}", x.0.to_string(), x.1, x.2))
 }
 // }}}
 // getip {{{
 fn getip(input: String, mailq: &Vec<(MQ)>, user: String, pass: String, ip: String) {
-    let email = &mailq.into_iter().filter(|i| i.2 == input).collect::<Vec<_>>();
+    let mut captures = Vec::new();
+    let email = &mailq
+        .into_iter()
+        .filter(|i| i.2 == input)
+        .collect::<Vec<_>>();
     println!("Using mailq ID: {}", email[0].1);
     // let mut caps = Vec::new();
     // let command = format!("spawn ssh {}@{};expect \"password\";send \"{}\n\";expect \"root\";send \"grep -oP \\'\\\\\\[\\\\K(\\[^\\]\\]+)|by \\\\K(\\[^\\.\\]+)|From: \\\\K(\\[^\\\\n\\]+)|Subject: \\\\K(\\.{{0,40}})\\' /var/spool/mqueue/qf{} | tail -4\\n\";expect \"root\";send \"exit\\n\";expect eof;exit", user, ip, pass, email[0].1);
@@ -192,17 +201,21 @@ fn getip(input: String, mailq: &Vec<(MQ)>, user: String, pass: String, ip: Strin
         // let ip = cap[1].parse::<i32>().unwrap();
         let ip = cap[1].to_string();
         let server = cap[2].to_string();
-        // let from = cap[3].to_string();
-        // let subj = cap[4].to_string();
-        // let server = cap[2].to_string();
-        println!("IP: {}", ip);
-        println!("Server: {}", server);
-        // println!("{}", from);
-        // println!("{}", subj);
-        // println!("{}", server);
-        // caps.push((ip, server));
+        // println!("IP: {}", ip);
+        // println!("Server: {}", server);
+        captures.push((ip, server));
     }
-    // println!("{:?}", caps);
+    // println!("{:?}", captures[0].0);
+    // geolocation
+    let reader = maxminddb::Reader::open(
+        "/home/fish/Downloads/GeoLite2-Country_20180605/GeoLite2-Country.mmdb",
+    ).unwrap();
+    let ip: IpAddr = FromStr::from_str(&captures[0].0).unwrap();
+    let country: geoip2::Country = reader.lookup(ip).unwrap();
+    // print!("{:?}\n", country.country.unwrap().iso_code.unwrap());
+    print!("ip: {}\ncountry: {}\nserver: {}\n", captures[0].0, country.country.unwrap().iso_code.unwrap(), captures[0].1);
+    // let test = ip(captures[0].0);
+    // println!("{}", ip(captures[0].0));
     // let sorted = mailq;
     // sort by count
     // sorted.sort_by_key(|x| x.0);
@@ -211,14 +224,14 @@ fn getip(input: String, mailq: &Vec<(MQ)>, user: String, pass: String, ip: Strin
 }
 // }}}
 // ip {{{
-fn ip() {
-    let reader = maxminddb::Reader::open(
-        "/home/fish/Downloads/GeoLite2-Country_20180605/GeoLite2-Country.mmdb",
-    ).unwrap();
-    let ip: IpAddr = FromStr::from_str("27.83.236.133").unwrap();
-    let country: geoip2::Country = reader.lookup(ip).unwrap();
-    print!("{:?}\n", country.country.unwrap().iso_code.unwrap());
-}
+// fn ip(input: String) {
+//     let reader = maxminddb::Reader::open(
+//         "/home/fish/Downloads/GeoLite2-Country_20180605/GeoLite2-Country.mmdb",
+//     ).unwrap();
+//     let ip: IpAddr = FromStr::from_str(&input).unwrap();
+//     let country: geoip2::Country = reader.lookup(ip).unwrap();
+//     print!("{:?}\n", country.country.unwrap().iso_code.unwrap());
+// }
 // }}}
 // notes: {{{
 // awk
